@@ -83,6 +83,8 @@ func NewTemplateResource(path string, config Config) (*TemplateResource, error) 
 	tr.store = memkv.New()
 	tr.syncOnly = config.SyncOnly
 	addFuncs(tr.funcMap, tr.store.FuncMap)
+	tr.funcMap["prefix"] = PrefixGetv(tr.store)
+	tr.funcMap["last"] = LastDottedSegment
 
 	if config.Prefix != "" {
 		tr.Prefix = config.Prefix
@@ -103,6 +105,17 @@ func NewTemplateResource(path string, config Config) (*TemplateResource, error) 
 
 	tr.Src = filepath.Join(config.TemplateDir, tr.Src)
 	return &tr, nil
+}
+
+func LastDottedSegment(s string) string {
+	spl := strings.Split(s, ".")
+	return spl[len(spl)-1]
+}
+
+func PrefixGetv(store memkv.Store) func(string, string) (string, error) {
+	return func(prefix string, key string) (string, error) {
+		return store.GetValue(prefix + key)
+	}
 }
 
 // setVars sets the Vars for template resource.
